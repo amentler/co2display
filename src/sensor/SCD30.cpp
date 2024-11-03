@@ -38,7 +38,7 @@ void SCD30::initialize(void) {
     //Set temperature offset。
     //setTemperatureOffset(0);
     
-    Wire.begin(D7, D8, 0); // Added Wire begin to avoid infinite waiting
+    Wire.begin(D8, D7, 0); // Added Wire begin to avoid infinite waiting
     setMeasurementInterval(15); // 15 seconds between measurements
     startPeriodicMeasurement(); // start periodic measuments
 

@@ -35,18 +35,18 @@ GxEPD2_BW<GxEPD2_154_GDEY0154D67, GxEPD2_154_GDEY0154D67::HEIGHT> display(
 
 
 void setup() {  
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
   Serial.begin(115200);
 
   // Initialize the preferences library
   preferences.begin("co2sensor", false); // "my-app" is the namespace, false for read/write mode
 
   scd30.initialize();
-  Serial.println("SCD30 initialized");  
+  //Serial.println("SCD30 initialized");  
 
   display.init(115200, true, 2, false); // USE THIS for Waveshare boards with "clever" reset circuit, 2ms reset pulse 
-  Serial.println("Display initialized");
+  //Serial.println("Display initialized");
+
+  blinkTwice();
 }
 
 void loadLastValues()
@@ -64,6 +64,7 @@ void loop() {
 
 void runOnce()
 {
+  blinkTwice();
   loadLastValues();
   if (readSensor() && hasSensorValueChanged())
   {
@@ -71,7 +72,23 @@ void runOnce()
     displayValues();
   }
 
-  sleepDeeply(120);
+  for (int sleeperCount = 0; sleeperCount<4; sleeperCount++) {
+    blinkTwice();
+    sleepDeeply(60);
+  }
+}
+
+void blinkTwice()
+{
+  Serial.println("blink");
+  gpio_hold_dis(GPIO_NUM_2);
+  pinMode(LED_BUILTIN, OUTPUT);
+  for (int blinkerCount = 0; blinkerCount<4; blinkerCount++) {
+    analogWrite(LED_BUILTIN, INT_MAX);
+    delay(1);
+    analogWrite(LED_BUILTIN, 0);
+    delay(10);
+  }
 }
 
 void sleepDeeply(int sleepSeconds)
@@ -99,6 +116,7 @@ void updateStatistics() {
   Serial.println("currentTemperature:" + String(currentTemperature) + " lastTemperature:" + String(lastTemperature) + " Trend: " + String(temperatureTrend));
   lastTemperature = currentTemperature;
 
+  Serial.println("Writing values to NVS");
   preferences.putInt("lastCO2", lastCO2);
   preferences.putInt("lastHumidity", lastHumidity);
   preferences.putInt("lastTemperature", lastTemperature);
