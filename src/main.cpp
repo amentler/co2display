@@ -12,6 +12,9 @@ bool hasSensorValueChanged();
 bool isInRange(int, int, int);
 String getTrend(int, int);
 void updateStatistics();
+void checkBattery();
+
+const int SLEEP_TIME = 20;
 
 int lastHumidity = 0;
 int lastTemperature = 0;
@@ -46,6 +49,8 @@ void setup() {
   display.init(115200, true, 2, false); // USE THIS for Waveshare boards with "clever" reset circuit, 2ms reset pulse 
   //Serial.println("Display initialized");
 
+  pinMode(A0, INPUT);
+
   blinkTwice();
 }
 
@@ -66,6 +71,7 @@ void runOnce()
 {
   blinkTwice();
   loadLastValues();
+  checkBattery();
   if (readSensor() && hasSensorValueChanged())
   {
     updateStatistics();
@@ -74,7 +80,7 @@ void runOnce()
 
   for (int sleeperCount = 0; sleeperCount<4; sleeperCount++) {
     blinkTwice();
-    sleepDeeply(60);
+    sleepDeeply(SLEEP_TIME);
   }
 }
 
@@ -91,6 +97,15 @@ void blinkTwice()
   }
 }
 
+const float MAX_READOUT = 4095;
+const float MAX_VOLTAGE = 4.3;
+String batteryVoltage = "0V";
+void checkBattery() {
+  Serial.println("Battery Analog Read: " + String(analogRead(A0)));
+  batteryVoltage = String((float(analogRead(A0))/MAX_READOUT) * MAX_VOLTAGE) + "V";
+  Serial.println("Battery Check: " + batteryVoltage);
+}
+
 void sleepDeeply(int sleepSeconds)
 {
   gpio_hold_en(GPIO_NUM_2);
@@ -103,7 +118,7 @@ bool hasSensorValueChanged() {
 }
 
 void updateStatistics() {
-  Serial.println("updating Statistics!");
+  Serial.println("---updating Statistics!---");
   cO2Trend = getTrend(currentCO2, lastCO2);
   Serial.println("currentCO2:" + String(currentCO2) + " lastCO2:" + String(lastCO2) + " Trend: " + String(cO2Trend));
   lastCO2 = currentCO2;  
@@ -159,11 +174,14 @@ void displayValues()
     display.setTextColor(GxEPD_BLACK);
     display.setFullWindow();
     display.firstPage();
+    display.fillScreen(GxEPD_WHITE);
+    display.setTextSize(3);
     do {
-        display.fillScreen(GxEPD_WHITE);
         display.setCursor(0, 0);
-        display.setTextSize(3);
         display.print(values);
+        
+        display.setCursor(110, 173);
+        display.print(batteryVoltage);
     } while (display.nextPage());
     Serial.println("Display update is done");
 }
