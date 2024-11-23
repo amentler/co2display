@@ -189,12 +189,13 @@ void displayValues()
     display.firstPage();
     display.fillScreen(GxEPD_WHITE);
     display.setTextSize(3);
-    do {
-        display.setCursor(0, 0);
-        display.print(values);
-        
-        display.setCursor(110, 173);
-        display.print(batteryVoltage);
-    } while (display.nextPage());
+
+    display.setCursor(0, 0);
+    display.print(values);
+
+    display.setCursor(110, 173);
+    display.print(batteryVoltage);
+    display.nextPage();
+
     Serial.println("Display update is done");
 }
