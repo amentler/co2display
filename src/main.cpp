@@ -3,6 +3,7 @@
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include "sensor/SCD30.h"
 #include <Preferences.h>
+#include "buttons/Buttons.h"
 
 
 void sleepDeeply(int);
@@ -14,7 +15,7 @@ String getTrend(int, int);
 void updateStatistics();
 void checkBattery();
 
-const int SLEEP_TIME = 20;
+const int SLEEP_TIME = 300;
 
 int lastHumidity = 0;
 int lastTemperature = 0;
@@ -33,12 +34,22 @@ const String DOWN = "\\/";
 
 Preferences preferences;
 
+Buttons buttons;
+
 GxEPD2_BW<GxEPD2_154_GDEY0154D67, GxEPD2_154_GDEY0154D67::HEIGHT> display(
   GxEPD2_154_GDEY0154D67(/*CS=D8*/ 0, /*DC=D3*/ 19, /*RST=D4*/ 21, /*BUSY=D2*/ 22)); // GDEY0154D67 200x200, SSD1681, (FPC-B001 20.05.21)
 
-
+bool buttonWakeUp = false;
 void setup() {  
   Serial.begin(115200);
+
+  gpio_hold_dis(GPIO_NUM_2);
+
+  buttons.init();
+
+  Serial.println("Button Status:" + String(buttons.isButton1Pressed()));
+
+  while(buttons.isButton1Pressed()){};
 
   // Initialize the preferences library
   preferences.begin("co2sensor", false); // "my-app" is the namespace, false for read/write mode
@@ -50,17 +61,6 @@ void setup() {
   //Serial.println("Display initialized");
 
   pinMode(A0, INPUT);
-
-  blinkTwice();
-}
-
-void loadLastValues()
-{
-  lastCO2 = preferences.getInt("lastCO2", 0);
-  lastHumidity = preferences.getInt("lastHumidity", 0);
-  lastTemperature = preferences.getInt("lastTemperature", 0);
-
-  Serial.println("Values loaded: lastCO2: " + String(lastCO2) + " / lastHumidity: " + String(lastHumidity) + " / lastTemperature: " + String(lastTemperature) );
 }
 
 void loop() {
@@ -72,22 +72,28 @@ void runOnce()
   blinkTwice();
   loadLastValues();
   checkBattery();
+
   if (readSensor() && hasSensorValueChanged())
   {
     updateStatistics();
     displayValues();
   }
+  
+  sleepDeeply(SLEEP_TIME);
+}
 
-  for (int sleeperCount = 0; sleeperCount<4; sleeperCount++) {
-    blinkTwice();
-    sleepDeeply(SLEEP_TIME);
-  }
+void loadLastValues()
+{
+  lastCO2 = preferences.getInt("lastCO2", 0);
+  lastHumidity = preferences.getInt("lastHumidity", 0);
+  lastTemperature = preferences.getInt("lastTemperature", 0);
+
+  Serial.println("Values loaded: lastCO2: " + String(lastCO2) + " / lastHumidity: " + String(lastHumidity) + " / lastTemperature: " + String(lastTemperature) );
 }
 
 void blinkTwice()
 {
   Serial.println("blink");
-  gpio_hold_dis(GPIO_NUM_2);
   pinMode(LED_BUILTIN, OUTPUT);
   for (int blinkerCount = 0; blinkerCount<4; blinkerCount++) {
     analogWrite(LED_BUILTIN, INT_MAX);
@@ -108,9 +114,12 @@ void checkBattery() {
 
 void sleepDeeply(int sleepSeconds)
 {
+  int deepSleepMicroseconds = 1000 * 1000 * sleepSeconds;
+  Serial.println("Beginning deep sleep for seconds: " + String(sleepSeconds));
   gpio_hold_en(GPIO_NUM_2);
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 1);
   gpio_deep_sleep_hold_en();
-  esp_deep_sleep(1000 * 1000 * sleepSeconds);
+  esp_deep_sleep(deepSleepMicroseconds);
 }
 
 bool hasSensorValueChanged() {
@@ -149,6 +158,7 @@ bool isInRange(int value, int lastvalue, int deviation) {
 }
 
 bool readSensor() {
+  Serial.println("Reading Sensor");
   if (scd30.isAvailable()) {
     float result[3] = {0};
     scd30.getCarbonDioxideConcentration(result);
