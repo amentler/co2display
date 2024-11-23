@@ -43,16 +43,22 @@ GxEPD2_BW<GxEPD2_154_GDEY0154D67, GxEPD2_154_GDEY0154D67::HEIGHT> display(
   GxEPD2_154_GDEY0154D67(/*CS=D8*/ 0, /*DC=D3*/ 19, /*RST=D4*/ 21, /*BUSY=D2*/ 22)); // GDEY0154D67 200x200, SSD1681, (FPC-B001 20.05.21)
 
 bool buttonWakeUp = false;
+bool buttonLongPress = false;
+
 void setup() {  
   Serial.begin(115200);
 
-  gpio_hold_dis(GPIO_NUM_2);
+  gpio_hold_dis(GPIO_NUM_2); //falls die LED benötigt wird !
 
   buttons.init();
+  long buttonTimeFirst = millis();  
+  long buttonTimeLast = millis();
+  while (buttons.isButton1Pressed()){
+    buttonWakeUp = true;  
+    buttonTimeLast = millis();
+  };
 
-  Serial.println("Button Status:" + String(buttons.isButton1Pressed()));
-
-  while(buttons.isButton1Pressed()){buttonWakeUp = true;};
+  buttonLongPress = (buttonTimeLast - buttonTimeFirst) > 1500;
 
   // Initialize the preferences library
   preferences.begin("co2sensor", false); // "my-app" is the namespace, false for read/write mode
@@ -76,7 +82,7 @@ void runOnce()
   loadLastValues();
   checkBattery();
 
-  if ((readSensor() && hasSensorValueChanged()) || buttonWakeUp)
+  if ((readSensor() && hasSensorValueChanged()) || buttonLongPress)
   {
     updateStatistics();
     displayValues();
