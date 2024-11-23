@@ -15,6 +15,9 @@ String getTrend(int, int);
 void updateStatistics();
 void checkBattery();
 
+const int SERIAL_BITRATE = 115200;
+const int DISPLAY_DIAGNOSTICS_OUTPUT_BITRATE = 0; //0 für keinen output
+
 const int SLEEP_TIME = 300;
 
 int lastHumidity = 0;
@@ -49,7 +52,7 @@ void setup() {
 
   Serial.println("Button Status:" + String(buttons.isButton1Pressed()));
 
-  while(buttons.isButton1Pressed()){};
+  while(buttons.isButton1Pressed()){buttonWakeUp = true;};
 
   // Initialize the preferences library
   preferences.begin("co2sensor", false); // "my-app" is the namespace, false for read/write mode
@@ -57,7 +60,7 @@ void setup() {
   scd30.initialize();
   //Serial.println("SCD30 initialized");  
 
-  display.init(115200, true, 2, false); // USE THIS for Waveshare boards with "clever" reset circuit, 2ms reset pulse 
+  display.init(DISPLAY_DIAGNOSTICS_OUTPUT_BITRATE, true, 2, false); // USE THIS for Waveshare boards with "clever" reset circuit, 2ms reset pulse 
   //Serial.println("Display initialized");
 
   pinMode(A0, INPUT);
@@ -73,7 +76,7 @@ void runOnce()
   loadLastValues();
   checkBattery();
 
-  if (readSensor() && hasSensorValueChanged())
+  if ((readSensor() && hasSensorValueChanged()) || buttonWakeUp)
   {
     updateStatistics();
     displayValues();
