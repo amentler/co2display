@@ -9,7 +9,7 @@ void Buttons::init() {
 
 bool Buttons::isButton1Pressed() {
     bool result = digitalRead(button1Pin);
-    delay(10);
+    delay(50);
     result = result && digitalRead(button1Pin);
 
     return result;

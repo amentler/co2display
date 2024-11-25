@@ -16,7 +16,7 @@ void updateStatistics();
 void checkBattery();
 
 const int SERIAL_BITRATE = 115200;
-const int DISPLAY_DIAGNOSTICS_OUTPUT_BITRATE = 0; //0 für keinen output
+const int DISPLAY_DIAGNOSTICS_OUTPUT_BITRATE = SERIAL_BITRATE; //0 für keinen output
 
 const int SLEEP_TIME = 300;
 
@@ -48,26 +48,30 @@ bool buttonLongPress = false;
 void setup() {  
   Serial.begin(115200);
 
-  gpio_hold_dis(GPIO_NUM_2); //falls die LED benötigt wird !
+  //while (!Serial.available()) {}
+
+  //gpio_hold_dis(GPIO_NUM_2); //falls die LED benötigt wird !
 
   buttons.init();
   long buttonTimeFirst = millis();  
   long buttonTimeLast = millis();
   while (buttons.isButton1Pressed()){
+    Serial.println("Button pressed!");
     buttonWakeUp = true;  
     buttonTimeLast = millis();
   };
 
   buttonLongPress = (buttonTimeLast - buttonTimeFirst) > 1500;
+  if (buttonLongPress) Serial.println("Button pressed for more than 1500ms!");
 
   // Initialize the preferences library
   preferences.begin("co2sensor", false); // "my-app" is the namespace, false for read/write mode
 
   scd30.initialize();
-  //Serial.println("SCD30 initialized");  
+  Serial.println("SCD30 initialized");  
 
   display.init(DISPLAY_DIAGNOSTICS_OUTPUT_BITRATE, true, 2, false); // USE THIS for Waveshare boards with "clever" reset circuit, 2ms reset pulse 
-  //Serial.println("Display initialized");
+  Serial.println("Display initialized");
 
   pinMode(A0, INPUT);
 }
@@ -113,11 +117,12 @@ void blinkTwice()
 }
 
 const float MAX_READOUT = 4095;
-const float MAX_VOLTAGE = 4.3;
+const float READOUT_CORRECTION = 50;
+const float MAX_VOLTAGE = 4.2;
 String batteryVoltage = "0V";
 void checkBattery() {
-  Serial.println("Battery Analog Read: " + String(analogRead(A0)));
-  batteryVoltage = String((float(analogRead(A0))/MAX_READOUT) * MAX_VOLTAGE) + "V";
+  Serial.println("Battery Analog Read: " + String(analogRead(A0)-READOUT_CORRECTION));
+  batteryVoltage = String((float((analogRead(A0)-READOUT_CORRECTION))/MAX_READOUT) * MAX_VOLTAGE) + "V";
   Serial.println("Battery Check: " + batteryVoltage);
 }
 
