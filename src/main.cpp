@@ -61,8 +61,8 @@ void setup() {
     buttonTimeLast = millis();
   };
 
-  buttonLongPress = (buttonTimeLast - buttonTimeFirst) > 1500;
-  if (buttonLongPress) Serial.println("Button pressed for more than 1500ms!");
+  buttonLongPress = (buttonTimeLast - buttonTimeFirst) > 1000;
+  if (buttonLongPress) Serial.println("Button pressed for more than 1000ms!");
 
   // Initialize the preferences library
   preferences.begin("co2sensor", false); // "my-app" is the namespace, false for read/write mode
@@ -89,7 +89,9 @@ void runOnce()
   if ((readSensor() && hasSensorValueChanged()) || buttonLongPress)
   {
     updateStatistics();
-    displayValues();
+    if (buttonLongPress) {
+      displayValues();
+    }
   }
   
   sleepDeeply(SLEEP_TIME);
