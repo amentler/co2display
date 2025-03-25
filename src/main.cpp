@@ -61,7 +61,7 @@ void setup() {
     buttonTimeLast = millis();
   };
 
-  buttonLongPress = (buttonTimeLast - buttonTimeFirst) > 1000;
+  buttonLongPress = (buttonTimeLast - buttonTimeFirst) > 50;
   if (buttonLongPress) Serial.println("Button pressed for more than 1000ms!");
 
   // Initialize the preferences library
@@ -85,10 +85,18 @@ void runOnce()
   blinkTwice();
   loadLastValues();
   checkBattery();
+  bool sensorRead = readSensor();
 
-  if ((readSensor() && hasSensorValueChanged()) || buttonLongPress)
+  if (sensorRead && hasSensorValueChanged() || buttonLongPress)
   {
-    updateStatistics();
+    if (sensorRead)
+      updateStatistics();
+    else {
+      currentCO2 = lastCO2;
+      currentHumidity = lastHumidity;
+      currentTemperature = lastTemperature;
+    }
+
     if (buttonLongPress) {
       displayValues();
     }
@@ -181,9 +189,11 @@ bool readSensor() {
     currentCO2 = (int)round(result[0]);
     currentTemperature = (int)round(result[1]);
     currentHumidity = (int)round(result[2]);
-    Serial.println("currentCO2:" + String(currentCO2) + " currentTemperature:" + String(currentTemperature) + " currentHumidity: " + String(currentHumidity));
+    Serial.println("Reading Sensor Finished\ncurrentCO2:" + String(currentCO2) + " currentTemperature:" + String(currentTemperature) + " currentHumidity: " + String(currentHumidity));
     return true;
   }
+  
+  Serial.println("Couldnt read Sensor");
   return false;
 }
 
